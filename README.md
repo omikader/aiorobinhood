@@ -1,6 +1,6 @@
 # aiorobinhood
 [![build](https://github.com/omikader/aiorobinhood/workflows/build/badge.svg)](https://github.com/omikader/aiorobinhood/actions?query=workflow%3Abuild)
-[![codecov](https://codecov.io/gh/omikader/aiorobinhood/branch/master/graph/badge.svg?token=9jcvFi0QyV)](https://codecov.io/gh/omikader/aiorobinhood)
+[![codecov](https://codecov.io/gh/omikader/aiorobinhood/branch/master/graph/badge.svg)](https://codecov.io/gh/omikader/aiorobinhood)
 [![style](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
 
