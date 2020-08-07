@@ -189,7 +189,7 @@ async def test_place_limit_buy_order(logged_in_client):
     )
 
     result = await asyncio.wait_for(task, pytest.TIMEOUT)
-    assert result == {"id": "ID"}
+    assert result == "ID"
 
 
 @pytest.mark.asyncio
@@ -231,7 +231,7 @@ async def test_place_limit_sell_order(logged_in_client):
     )
 
     result = await asyncio.wait_for(task, pytest.TIMEOUT)
-    assert result == {"id": "ID"}
+    assert result == "ID"
 
 
 @pytest.mark.asyncio
@@ -277,7 +277,7 @@ async def test_place_market_buy_order_by_amount(logged_in_client):
     )
 
     result = await asyncio.wait_for(task, pytest.TIMEOUT)
-    assert result == {"id": "ID"}
+    assert result == "ID"
 
 
 @pytest.mark.asyncio
@@ -320,7 +320,7 @@ async def test_place_market_buy_order_by_quantity(logged_in_client):
     )
 
     result = await asyncio.wait_for(task, pytest.TIMEOUT)
-    assert result == {"id": "ID"}
+    assert result == "ID"
 
 
 @pytest.mark.asyncio
@@ -375,7 +375,7 @@ async def test_place_market_sell_order_by_amount(logged_in_client):
     )
 
     result = await asyncio.wait_for(task, pytest.TIMEOUT)
-    assert result == {"id": "ID"}
+    assert result == "ID"
 
 
 @pytest.mark.asyncio
@@ -418,7 +418,7 @@ async def test_place_market_sell_order_by_quantity(logged_in_client):
     )
 
     result = await asyncio.wait_for(task, pytest.TIMEOUT)
-    assert result == {"id": "ID"}
+    assert result == "ID"
 
 
 @pytest.mark.asyncio
@@ -470,7 +470,7 @@ async def test_place_stop_buy_order(logged_in_client):
     )
 
     result = await asyncio.wait_for(task, pytest.TIMEOUT)
-    assert result == {"id": "ID"}
+    assert result == "ID"
 
 
 @pytest.mark.asyncio
@@ -512,7 +512,7 @@ async def test_place_stop_sell_order(logged_in_client):
     )
 
     result = await asyncio.wait_for(task, pytest.TIMEOUT)
-    assert result == {"id": "ID"}
+    assert result == "ID"
 
 
 @pytest.mark.asyncio
@@ -557,7 +557,7 @@ async def test_place_stop_limit_buy_order(logged_in_client):
     )
 
     result = await asyncio.wait_for(task, pytest.TIMEOUT)
-    assert result == {"id": "ID"}
+    assert result == "ID"
 
 
 @pytest.mark.asyncio
@@ -602,4 +602,4 @@ async def test_place_stop_limit_sell_order(logged_in_client):
     )
 
     result = await asyncio.wait_for(task, pytest.TIMEOUT)
-    assert result == {"id": "ID"}
+    assert result == "ID"

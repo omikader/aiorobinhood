@@ -996,7 +996,7 @@ class RobinhoodClient:
 
     @check_tokens
     @check_session
-    async def place_order(self, **kwargs) -> Dict[str, Any]:
+    async def place_order(self, **kwargs) -> str:
         assert self._session is not None
 
         try:
@@ -1010,7 +1010,7 @@ class RobinhoodClient:
                 if resp.status != 201:
                     raise ClientAPIError(resp.method, resp.url, resp.status, response)
 
-                return response
+                return response["id"]
         except (aiohttp.ClientError, asyncio.TimeoutError) as e:
             raise ClientRequestError("POST", urls.ORDERS) from e
 
@@ -1021,7 +1021,7 @@ class RobinhoodClient:
         quantity: int,
         time_in_force: models.OrderTimeInForce = models.OrderTimeInForce.GFD,
         extended_hours: bool = False,
-    ) -> Dict[str, Any]:
+    ) -> str:
         """Place a limit buy order.
 
         Args:
@@ -1033,7 +1033,7 @@ class RobinhoodClient:
             extended_hours: The order can be executed in extended trading hours.
 
         Returns:
-            Information about the order including status and order ID.
+            The order ID.
 
         Raises:
             ClientAPIError: Robinhood server responded with an error.
@@ -1061,7 +1061,7 @@ class RobinhoodClient:
         quantity: int,
         time_in_force: models.OrderTimeInForce = models.OrderTimeInForce.GFD,
         extended_hours: bool = False,
-    ) -> Dict[str, Any]:
+    ) -> str:
         """Place a limit sell order.
 
         Args:
@@ -1073,7 +1073,7 @@ class RobinhoodClient:
             extended_hours: The order can be executed in extended trading hours.
 
         Returns:
-            Information about the order including status and order ID.
+            The order ID.
 
         Raises:
             ClientAPIError: Robinhood server responded with an error.
@@ -1102,7 +1102,7 @@ class RobinhoodClient:
         quantity: Optional[Union[int, float]] = None,
         time_in_force: models.OrderTimeInForce = models.OrderTimeInForce.GFD,
         extended_hours: bool = False,
-    ) -> Dict[str, Any]:
+    ) -> str:
         """Place a market buy order by quantity of shares or dollar amount.
 
         Args:
@@ -1114,7 +1114,7 @@ class RobinhoodClient:
             extended_hours: The order can be executed in extended trading hours.
 
         Returns:
-            Information about the order including status and order ID.
+            The order ID.
 
         Raises:
             ClientAPIError: Robinhood server responded with an error.
@@ -1155,7 +1155,7 @@ class RobinhoodClient:
         quantity: Optional[Union[int, float]] = None,
         time_in_force: models.OrderTimeInForce = models.OrderTimeInForce.GFD,
         extended_hours: bool = False,
-    ) -> Dict[str, Any]:
+    ) -> str:
         """Place a market sell order by quantity of shares or dollar amount.
 
         Args:
@@ -1167,7 +1167,7 @@ class RobinhoodClient:
             extended_hours: The order can be executed in extended trading hours.
 
         Returns:
-            Information about the order including status and order ID.
+            The order ID.
 
         Raises:
             ClientAPIError: Robinhood server responded with an error.
@@ -1207,7 +1207,7 @@ class RobinhoodClient:
         quantity: int,
         time_in_force: models.OrderTimeInForce = models.OrderTimeInForce.GFD,
         extended_hours: bool = False,
-    ) -> Dict[str, Any]:
+    ) -> str:
         """Place a stop buy order.
 
         Args:
@@ -1219,7 +1219,7 @@ class RobinhoodClient:
             extended_hours: The order can be executed in extended trading hours.
 
         Returns:
-            Information about the order including status and order ID.
+            The order ID.
 
         Raises:
             ClientAPIError: Robinhood server responded with an error.
@@ -1248,7 +1248,7 @@ class RobinhoodClient:
         quantity: int,
         time_in_force: models.OrderTimeInForce = models.OrderTimeInForce.GFD,
         extended_hours: bool = False,
-    ) -> Dict[str, Any]:
+    ) -> str:
         """Place a stop sell order.
 
         Args:
@@ -1260,7 +1260,7 @@ class RobinhoodClient:
             extended_hours: The order can be executed in extended trading hours.
 
         Returns:
-            Information about the order including status and order ID.
+            The order ID.
 
         Raises:
             ClientAPIError: Robinhood server responded with an error.
@@ -1289,7 +1289,7 @@ class RobinhoodClient:
         stop_price: Union[int, float],
         time_in_force: models.OrderTimeInForce = models.OrderTimeInForce.GFD,
         extended_hours: bool = False,
-    ) -> Dict[str, Any]:
+    ) -> str:
         """Place a limit buy order triggered at a given stop price.
 
         Args:
@@ -1302,7 +1302,7 @@ class RobinhoodClient:
             extended_hours: The order can be executed in extended trading hours.
 
         Returns:
-            Information about the order including status and order ID.
+            The order ID.
 
         Raises:
             ClientAPIError: Robinhood server responded with an error.
@@ -1332,7 +1332,7 @@ class RobinhoodClient:
         stop_price: Union[int, float],
         time_in_force: models.OrderTimeInForce = models.OrderTimeInForce.GFD,
         extended_hours: bool = False,
-    ) -> Dict[str, Any]:
+    ) -> str:
         """Place a limit sell order triggered at a given stop price.
 
         Args:
@@ -1345,7 +1345,7 @@ class RobinhoodClient:
             extended_hours: The order can be executed in extended trading hours.
 
         Returns:
-            Information about the order including status and order ID.
+            The order ID.
 
         Raises:
             ClientAPIError: Robinhood server responded with an error.
