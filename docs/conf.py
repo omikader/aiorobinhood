@@ -13,10 +13,9 @@
 import pathlib
 import re
 
+import aiohttp.client
 
 # -- Module Remapping --------------------------------------------------------
-
-import aiohttp.client
 
 aiohttp.client.ClientSession.__module__ = "aiohttp"
 
@@ -40,11 +39,12 @@ release = version
 
 # -- General configuration ---------------------------------------------------
 
+# Set whether module names are prepended to all object names
+add_module_names = False
+
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
-add_module_names = False
-
 extensions = [
     "sphinx.ext.autodoc",
     "sphinx.ext.intersphinx",

@@ -6,8 +6,7 @@ from uuid import uuid4
 
 import aiohttp
 
-from . import models
-from . import urls
+from . import models, urls
 from .decorators import check_session, check_tokens, mutually_exclusive
 from .exceptions import ClientAPIError, ClientRequestError
 
@@ -1177,7 +1176,6 @@ class RobinhoodClient:
             ClientUninitializedError: The :class:`~.RobinhoodClient` is not initialized.
             ValueError: Both/neither of ``amount`` and ``quantity`` are supplied.
         """
-
         quotes = await self.get_quotes(symbols=[symbol])
         bid_price = float(quotes[0]["bid_price"])
 

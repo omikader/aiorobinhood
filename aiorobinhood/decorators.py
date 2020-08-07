@@ -1,7 +1,7 @@
 from functools import wraps
 from typing import Callable
 
-from .exceptions import ClientUninitializedError, ClientUnauthenticatedError
+from .exceptions import ClientUnauthenticatedError, ClientUninitializedError
 
 
 def check_session(func: Callable):
