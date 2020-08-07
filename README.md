@@ -17,7 +17,6 @@ import os
 
 from aiorobinhood import RobinhoodClient
 
-
 username = os.getenv("ROBINHOOD_USERNAME")
 password = os.getenv("ROBINHOOD_PASSWORD")
 

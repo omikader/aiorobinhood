@@ -64,7 +64,7 @@ exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 # -- Intersphinx configuration -----------------------------------------------
 
 intersphinx_mapping = {
-    "python": ("https://docs.python.org/3.7", None),
+    "python": ("https://docs.python.org/3", None),
     "aiohttp": ("https://docs.aiohttp.org/en/stable/", None),
     "yarl": ("https://yarl.readthedocs.io/en/stable/", None),
 }

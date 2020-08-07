@@ -1,6 +1,5 @@
 from yarl import URL
 
-
 BASE = URL("https://api.robinhood.com")
 
 # OAuth

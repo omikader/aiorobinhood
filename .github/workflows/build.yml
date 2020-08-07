@@ -34,16 +34,20 @@ jobs:
 
     - name: Format with black
       run: |
-        black --check --diff .
-        
-    - name: Typecheck with mypy
+        black . --check --diff
+
+    - name: Sort imports with isort
       run: |
-        mypy -p aiorobinhood
+        isort . --check --diff
 
     - name: Lint with flake8
       run: |
         # stop the build if there are Python syntax errors or undefined names
         flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+
+    - name: Typecheck with mypy
+      run: |
+        mypy -p aiorobinhood
 
     - name: Build docs with sphinx
       run: |

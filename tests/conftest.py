@@ -10,7 +10,6 @@ from aiorobinhood import RobinhoodClient
 from aiorobinhood.urls import ACCOUNTS, LOGIN
 from tests import CaseControlledTestServer, FakeResolver, TemporaryCertificate
 
-
 _RedirectContext = namedtuple("RedirectContext", "add_server session")
 
 
