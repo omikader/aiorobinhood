@@ -39,7 +39,7 @@ release = version
 
 # -- General configuration ---------------------------------------------------
 
-# Set whether module names are prepended to all object names
+# Set whether module names are prepended to all object names.
 add_module_names = False
 
 # Add any Sphinx extension module names here, as strings. They can be
@@ -74,8 +74,7 @@ intersphinx_mapping = {
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
-#
-html_theme = "alabaster"
+html_theme = "aiohttp_theme"
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
@@ -83,12 +82,33 @@ html_theme = "alabaster"
 html_static_path = []  # ["_static"]
 
 # Theme options are theme-specific and customize the look and feel of a theme
-# futher.
+# further.
 html_theme_options = {
+    "description": "Thin asynchronous wrapper for the unofficial Robinhood API",
     "canonical_url": "https://aiorobinhood.readthedocs.io",
     "github_user": "omikader",
     "github_repo": "aiorobinhood",
     "github_button": True,
     "github_type": "star",
     "github_banner": True,
+    "badges": [
+        {
+            "image": "https://github.com/omikader/aiorobinhood/workflows/build/badge.svg",  # noqa: E501
+            "target": "https://github.com/omikader/aiorobinhood/actions?query=workflow%3Abuild",  # noqa: E501
+            "alt": "Build status",
+        },
+        {
+            "image": "https://codecov.io/gh/omikader/aiorobinhood/branch/master/graph/badge.svg",  # noqa: E501
+            "target": "https://codecov.io/gh/omikader/aiorobinhood",
+            "alt": "Code coverage status",
+        },
+        {
+            "image": "https://img.shields.io/badge/code%20style-black-000000.svg",
+            "target": "https://github.com/psf/black",
+            "alt": "Style",
+        },
+    ],
 }
+
+# Custom sidebar templates, maps document names to template names.
+html_sidebars = {"**": ["about.html", "navigation.html", "searchbox.html"]}

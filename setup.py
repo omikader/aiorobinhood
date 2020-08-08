@@ -52,7 +52,7 @@ setup(
             "pytest-asyncio",
             "pytest-cov",
         ],
-        "docs": ["sphinx", "sphinx-autodoc-typehints"],
+        "docs": ["aiohttp_theme", "sphinx", "sphinx-autodoc-typehints"],
     },
     python_requires=">=3.7",
 )

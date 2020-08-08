@@ -10,6 +10,8 @@ Asynchronous Robinhood HTTP client built using :mod:`asyncio` and :mod:`aiohttp`
 Getting Started
 ===============
 
+A simple example using the :class:`~.RobinhoodClient` context manager.
+
 .. code-block:: python
 
     import asyncio
@@ -36,11 +38,17 @@ Getting Started
 Installation
 ============
 
+*aiorobinhood* can be installed from PyPI.
+
 .. code-block:: bash
 
-    $ git clone https://github.com/omikader/aiorobinhood.git
-    $ cd aiorobinhood
-    $ pip install .
+    $ pip install aiorobinhood
+
+You can also get the latest code from GitHub.
+
+.. code-block:: bash
+
+    $ pip install git+git://github.com/omikader/aiorobinhood
 
 Dependencies
 ============
