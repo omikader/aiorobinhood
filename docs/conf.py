@@ -103,6 +103,11 @@ html_theme_options = {
             "alt": "Code coverage status",
         },
         {
+            "image": "https://pepy.tech/badge/aiorobinhood/week",
+            "target": "https://pepy.tech/project/aiorobinhood/week",
+            "alt": "Downloads per week",
+        },
+        {
             "image": "https://img.shields.io/badge/code%20style-black-000000.svg",
             "target": "https://github.com/psf/black",
             "alt": "Style",

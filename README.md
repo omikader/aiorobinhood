@@ -1,6 +1,7 @@
 # aiorobinhood
 [![build](https://github.com/omikader/aiorobinhood/workflows/build/badge.svg)](https://github.com/omikader/aiorobinhood/actions?query=workflow%3Abuild)
 [![codecov](https://codecov.io/gh/omikader/aiorobinhood/branch/master/graph/badge.svg)](https://codecov.io/gh/omikader/aiorobinhood)
+[![downloads](https://pepy.tech/badge/aiorobinhood/week)](https://pepy.tech/project/aiorobinhood/week)
 [![style](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
 
