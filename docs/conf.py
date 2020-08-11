@@ -15,6 +15,7 @@ import re
 
 import aiohttp.client
 
+
 # -- Module Remapping --------------------------------------------------------
 
 aiohttp.client.ClientSession.__module__ = "aiohttp"
@@ -53,7 +54,7 @@ extensions = [
 ]
 
 # Add any paths that contain templates here, relative to this directory.
-templates_path = []  # ["_templates"]
+templates_path = ["_templates"]
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
@@ -79,11 +80,13 @@ html_theme = "aiohttp_theme"
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = []  # ["_static"]
+html_static_path = ["_static"]
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.
 html_theme_options = {
+    "logo": "aiorobinhood-logo.png",
+    "logo_name": True,
     "description": "Thin asynchronous wrapper for the unofficial Robinhood API",
     "canonical_url": "https://aiorobinhood.readthedocs.io",
     "github_user": "omikader",
@@ -115,5 +118,13 @@ html_theme_options = {
     ],
 }
 
+# The name of an image file (within the static path) to use as favicon of the
+# docs. This file should be a Windows icon file (.ico) being 16x16 or 32x32
+# pixels large.
+html_favicon = "favicon.ico"
+
 # Custom sidebar templates, maps document names to template names.
-html_sidebars = {"**": ["about.html", "navigation.html", "searchbox.html"]}
+html_sidebars = {
+    "**": ["about.html", "navigation.html", "searchbox.html"],
+    "index": ["about.html", "navigation.html", "searchbox.html", "credits.html"],
+}

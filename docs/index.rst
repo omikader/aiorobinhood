@@ -19,6 +19,7 @@ A simple example using the :class:`~.RobinhoodClient` context manager.
 
     from aiorobinhood import RobinhoodClient
 
+
     username = os.getenv("ROBINHOOD_USERNAME")
     password = os.getenv("ROBINHOOD_PASSWORD")
 
@@ -26,8 +27,8 @@ A simple example using the :class:`~.RobinhoodClient` context manager.
         async with RobinhoodClient(timeout=1) as client:
             await client.login(username, password)
 
-            # Buy $10 worth of Apple
-            await client.place_market_buy_order(symbol="AAPL", amount=10.0)
+            # Buy $10.50 worth of Apple
+            await client.place_market_buy_order("AAPL", amount=10.5)
 
             # End session
             await client.logout()

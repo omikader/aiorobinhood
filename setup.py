@@ -4,6 +4,7 @@ import sys
 
 from setuptools import setup
 
+
 if sys.version_info < (3, 7):
     raise RuntimeError("aiorobinhood requires Python 3.7+")
 
