@@ -640,53 +640,6 @@ class RobinhoodClient:
 
         return results
 
-    @check_tokens
-    @check_session
-    async def get_popularity(
-        self, ids: Iterable[str], pages: Optional[int] = None
-    ) -> List[Dict[str, Any]]:
-        """Fetch the popularity information pertaining to a list of securities.
-
-        Args:
-            ids: A sequence of instrument IDs.
-            pages: The number of pages to fetch (default is unlimited).
-
-        Returns:
-            Popularity data for each security, including number of open positions
-            held on Robinhood.
-
-        Raises:
-            ClientAPIError: Robinhood server responded with an error.
-            ClientRequestError: The HTTP request timed out or failed.
-            ClientUnauthenticatedError: The :class:`~.RobinhoodClient` is not logged in.
-            ClientUninitializedError: The :class:`~.RobinhoodClient` is not initialized.
-        """
-        assert self._session is not None
-
-        results = []
-        url = urls.POPULARITY.with_query({"ids": ",".join(ids)})
-
-        while url is not None and (pages is None or pages > 0):
-            try:
-                async with self._session.get(
-                    url,
-                    timeout=self._timeout,
-                    headers={"Authorization": self._access_token},
-                ) as resp:
-                    response = await resp.json()
-                    if resp.status != 200:
-                        raise ClientAPIError(
-                            resp.method, resp.url, resp.status, response
-                        )
-
-                    results += response["results"]
-                    url = response["next"]
-                    pages = pages and pages - 1
-            except (aiohttp.ClientError, asyncio.TimeoutError) as e:
-                raise ClientRequestError("GET", url) from e
-
-        return results
-
     @mutually_exclusive("symbols", "instruments")
     @check_tokens
     @check_session

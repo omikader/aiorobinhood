@@ -13,7 +13,6 @@ from aiorobinhood.urls import (
     FUNDAMENTALS,
     HISTORICALS,
     INSTRUMENTS,
-    POPULARITY,
     QUOTES,
     RATINGS,
     TAGS,
@@ -150,69 +149,6 @@ async def test_get_instruments_value_error(logged_in_client):
         await client.get_instruments()
     with pytest.raises(ValueError):
         await client.get_instruments(symbol="ABCD", ids=["12345"])
-
-
-@pytest.mark.asyncio
-async def test_get_popularity(logged_in_client):
-    client, server = logged_in_client
-    task = asyncio.create_task(client.get_popularity(ids=["12345", "67890"]))
-
-    request = await server.receive_request(timeout=pytest.TIMEOUT)
-    assert request.method == "GET"
-    assert request.headers["Authorization"] == f"Bearer {pytest.ACCESS_TOKEN}"
-    assert request.path == POPULARITY.path
-    assert request.query["ids"] == "12345,67890"
-    server.send_response(
-        request,
-        content_type="application/json",
-        text=json.dumps({"next": str(pytest.NEXT), "results": [{"foo": "bar"}]}),
-    )
-
-    request = await server.receive_request(timeout=pytest.TIMEOUT)
-    assert request.method == "GET"
-    assert request.headers["Authorization"] == f"Bearer {pytest.ACCESS_TOKEN}"
-    assert request.path == pytest.NEXT.path
-    server.send_response(
-        request,
-        content_type="application/json",
-        text=json.dumps({"next": None, "results": [{"baz": "quux"}]}),
-    )
-
-    result = await asyncio.wait_for(task, pytest.TIMEOUT)
-    assert result == [{"foo": "bar"}, {"baz": "quux"}]
-
-
-@pytest.mark.asyncio
-async def test_get_popularity_api_error(logged_in_client):
-    client, server = logged_in_client
-    task = asyncio.create_task(client.get_popularity(ids=["12345"]))
-
-    request = await server.receive_request(timeout=pytest.TIMEOUT)
-    assert request.method == "GET"
-    assert request.headers["Authorization"] == f"Bearer {pytest.ACCESS_TOKEN}"
-    assert request.path == POPULARITY.path
-    assert request.query["ids"] == "12345"
-    server.send_response(request, status=400, content_type="application/json")
-
-    with pytest.raises(ClientAPIError):
-        await task
-
-
-@pytest.mark.asyncio
-async def test_get_popularity_timeout_error(logged_in_client):
-    client, server = logged_in_client
-    task = asyncio.create_task(client.get_popularity(ids=["12345"]))
-
-    request = await server.receive_request(timeout=pytest.TIMEOUT)
-    assert request.method == "GET"
-    assert request.headers["Authorization"] == f"Bearer {pytest.ACCESS_TOKEN}"
-    assert request.path == POPULARITY.path
-    assert request.query["ids"] == "12345"
-
-    with pytest.raises(ClientRequestError) as exc_info:
-        await asyncio.sleep(pytest.TIMEOUT + 1)
-        await task
-    assert isinstance(exc_info.value.__cause__, asyncio.TimeoutError)
 
 
 @pytest.mark.asyncio

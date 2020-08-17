@@ -40,7 +40,6 @@ Stocks
 
 .. automethod:: RobinhoodClient.get_fundamentals
 .. automethod:: RobinhoodClient.get_instruments
-.. automethod:: RobinhoodClient.get_popularity
 .. automethod:: RobinhoodClient.get_quotes
 .. automethod:: RobinhoodClient.get_historical_quotes
 .. automethod:: RobinhoodClient.get_tags

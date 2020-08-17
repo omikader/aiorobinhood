@@ -20,7 +20,6 @@ WATCHLISTS = BASE / "watchlists/"
 # Stocks
 FUNDAMENTALS = BASE / "fundamentals/"
 INSTRUMENTS = BASE / "instruments/"
-POPULARITY = INSTRUMENTS / "popularity/"
 QUOTES = BASE / "quotes/"
 HISTORICALS = QUOTES / "historicals/"
 MIDLANDS = BASE / "midlands/"
