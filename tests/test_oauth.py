@@ -41,6 +41,7 @@ async def test_login_sfa_flow(logged_out_client):
         assert request.path == LOGIN.path
         server.send_response(
             request,
+            status=400,
             content_type="application/json",
             text=json.dumps(
                 {"challenge": {"id": challenge_id, "remaining_attempts": 3}}
@@ -150,41 +151,67 @@ async def test_login_mfa_flow(logged_out_client):
 
 
 @pytest.mark.asyncio
+async def test_login_api_error(logged_out_client):
+    client, server = logged_out_client
+    challenge_code = "123456"
+
+    with replace_input(StringIO(challenge_code)):
+        task = asyncio.create_task(client.login(username="robin", password="hood"))
+
+        request = await server.receive_request(timeout=pytest.TIMEOUT)
+        assert request.method == "POST"
+        assert request.path == LOGIN.path
+        server.send_response(
+            request, status=400, content_type="application/json", text=json.dumps({}),
+        )
+
+        with pytest.raises(ClientAPIError):
+            await task
+
+
+@pytest.mark.asyncio
+async def test_login_sfa_zero_challenge_attempts(logged_out_client):
+    client, server = logged_out_client
+    challenge_code = "123456"
+    challenge_id = "abcdef"
+
+    with replace_input(StringIO(challenge_code)):
+        task = asyncio.create_task(client.login(username="robin", password="hood"))
+
+        request = await server.receive_request(timeout=pytest.TIMEOUT)
+        assert request.method == "POST"
+        assert request.path == LOGIN.path
+        server.send_response(
+            request,
+            status=400,
+            content_type="application/json",
+            text=json.dumps(
+                {"challenge": {"id": challenge_id, "remaining_attempts": 1}}
+            ),
+        )
+
+        request = await server.receive_request(timeout=pytest.TIMEOUT)
+        assert request.method == "POST"
+        assert (await request.json())["response"] == challenge_code
+        assert request.path == f"{CHALLENGE.path}{challenge_id}/respond/"
+        server.send_response(
+            request,
+            status=400,
+            content_type="application/json",
+            text=json.dumps(
+                {"challenge": {"id": challenge_id, "remaining_attempts": 0}}
+            ),
+        )
+
+        with pytest.raises(ClientAPIError):
+            await task
+
+
+@pytest.mark.asyncio
 async def test_login_uninitialized_client():
     client = RobinhoodClient(timeout=pytest.TIMEOUT)
     with pytest.raises(ClientUninitializedError):
         await client.login(username="robin", password="hood")
-
-
-@pytest.mark.asyncio
-async def test_login_api_error(logged_in_client):
-    client, server = logged_in_client
-    task = asyncio.create_task(client.login(username="robin", password="hood"))
-
-    request = await server.receive_request(timeout=pytest.TIMEOUT)
-    assert request.method == "POST"
-    assert request.path == LOGIN.path
-    server.send_response(
-        request, status=400, content_type="application/json", text=json.dumps({})
-    )
-
-    with pytest.raises(ClientAPIError):
-        await task
-
-
-@pytest.mark.asyncio
-async def test_login_timeout_error(logged_in_client):
-    client, server = logged_in_client
-    task = asyncio.create_task(client.login(username="robin", password="hood"))
-
-    request = await server.receive_request(timeout=pytest.TIMEOUT)
-    assert request.method == "POST"
-    assert request.path == LOGIN.path
-
-    with pytest.raises(ClientRequestError) as exc_info:
-        await asyncio.sleep(pytest.TIMEOUT + 1)
-        await task
-    assert isinstance(exc_info.value.__cause__, asyncio.TimeoutError)
 
 
 @pytest.mark.asyncio
@@ -231,37 +258,6 @@ async def test_logout(logged_in_client):
 
 
 @pytest.mark.asyncio
-async def test_logout_api_error(logged_in_client):
-    client, server = logged_in_client
-    task = asyncio.create_task(client.logout())
-
-    request = await server.receive_request(timeout=pytest.TIMEOUT)
-    assert request.method == "POST"
-    assert (await request.json())["token"] == pytest.REFRESH_TOKEN
-    assert request.path == LOGOUT.path
-    server.send_response(request, status=400, content_type="application/json")
-
-    with pytest.raises(ClientAPIError):
-        await task
-
-
-@pytest.mark.asyncio
-async def test_logout_timeout_error(logged_in_client):
-    client, server = logged_in_client
-    task = asyncio.create_task(client.logout())
-
-    request = await server.receive_request(timeout=pytest.TIMEOUT)
-    assert request.method == "POST"
-    assert (await request.json())["token"] == pytest.REFRESH_TOKEN
-    assert request.path == LOGOUT.path
-
-    with pytest.raises(ClientRequestError) as exc_info:
-        await asyncio.sleep(pytest.TIMEOUT + 1)
-        await task
-    assert isinstance(exc_info.value.__cause__, asyncio.TimeoutError)
-
-
-@pytest.mark.asyncio
 async def test_logout_unauthenticated_client(logged_out_client):
     client, _ = logged_out_client
     with pytest.raises(ClientUnauthenticatedError):
@@ -292,41 +288,6 @@ async def test_refresh(logged_in_client):
     assert client._access_token == "Bearer foo"
     assert client._refresh_token == "bar"
     assert result is None
-
-
-@pytest.mark.asyncio
-async def test_refresh_api_error(logged_in_client):
-    client, server = logged_in_client
-    task = asyncio.create_task(client.refresh())
-
-    request = await server.receive_request(timeout=pytest.TIMEOUT)
-    assert request.method == "POST"
-    request_json = await request.json()
-    assert request_json["grant_type"] == "refresh_token"
-    assert request_json["refresh_token"] == pytest.REFRESH_TOKEN
-    assert request.path == LOGIN.path
-    server.send_response(request, status=400, content_type="application/json")
-
-    with pytest.raises(ClientAPIError):
-        await task
-
-
-@pytest.mark.asyncio
-async def test_refresh_timeout_error(logged_in_client):
-    client, server = logged_in_client
-    task = asyncio.create_task(client.refresh())
-
-    request = await server.receive_request(timeout=pytest.TIMEOUT)
-    assert request.method == "POST"
-    request_json = await request.json()
-    assert request_json["grant_type"] == "refresh_token"
-    assert request_json["refresh_token"] == pytest.REFRESH_TOKEN
-    assert request.path == LOGIN.path
-
-    with pytest.raises(ClientRequestError) as exc_info:
-        await asyncio.sleep(pytest.TIMEOUT + 1)
-        await task
-    assert isinstance(exc_info.value.__cause__, asyncio.TimeoutError)
 
 
 @pytest.mark.asyncio

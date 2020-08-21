@@ -1,17 +1,7 @@
 from functools import wraps
 from typing import Callable
 
-from .exceptions import ClientUnauthenticatedError, ClientUninitializedError
-
-
-def check_session(func: Callable):
-    @wraps(func)
-    async def inner(self, *args, **kwargs):
-        if self._session is None:
-            raise ClientUninitializedError()
-        return await func(self, *args, **kwargs)
-
-    return inner
+from .exceptions import ClientUnauthenticatedError
 
 
 def check_tokens(func: Callable):

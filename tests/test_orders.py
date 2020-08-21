@@ -3,7 +3,6 @@ import json
 
 import pytest
 
-from aiorobinhood import ClientAPIError, ClientRequestError
 from aiorobinhood.urls import INSTRUMENTS, ORDERS, QUOTES
 
 
@@ -37,38 +36,6 @@ async def test_get_orders(logged_in_client):
 
 
 @pytest.mark.asyncio
-async def test_get_orders_api_error(logged_in_client):
-    client, server = logged_in_client
-    order_id = "12345"
-    task = asyncio.create_task(client.get_orders(order_id))
-
-    request = await server.receive_request(timeout=pytest.TIMEOUT)
-    assert request.method == "GET"
-    assert request.headers["Authorization"] == f"Bearer {pytest.ACCESS_TOKEN}"
-    assert request.path == (ORDERS / f"{order_id}/").path
-    server.send_response(request, status=400, content_type="application/json")
-
-    with pytest.raises(ClientAPIError):
-        await task
-
-
-@pytest.mark.asyncio
-async def test_get_orders_timeout_error(logged_in_client):
-    client, server = logged_in_client
-    task = asyncio.create_task(client.get_orders())
-
-    request = await server.receive_request(timeout=pytest.TIMEOUT)
-    assert request.method == "GET"
-    assert request.headers["Authorization"] == f"Bearer {pytest.ACCESS_TOKEN}"
-    assert request.path == ORDERS.path
-
-    with pytest.raises(ClientRequestError) as exc_info:
-        await asyncio.sleep(pytest.TIMEOUT + 1)
-        await task
-    assert isinstance(exc_info.value.__cause__, asyncio.TimeoutError)
-
-
-@pytest.mark.asyncio
 async def test_cancel_order(logged_in_client):
     client, server = logged_in_client
     order_id = "12345"
@@ -82,72 +49,6 @@ async def test_cancel_order(logged_in_client):
 
     result = await asyncio.wait_for(task, pytest.TIMEOUT)
     assert result is None
-
-
-@pytest.mark.asyncio
-async def test_cancel_order_api_error(logged_in_client):
-    client, server = logged_in_client
-    order_id = "12345"
-    task = asyncio.create_task(client.cancel_order(order_id))
-
-    request = await server.receive_request(timeout=pytest.TIMEOUT)
-    assert request.method == "POST"
-    assert request.headers["Authorization"] == f"Bearer {pytest.ACCESS_TOKEN}"
-    assert request.path == (ORDERS / order_id / "cancel/").path
-    server.send_response(request, status=400, content_type="application/json")
-
-    with pytest.raises(ClientAPIError):
-        await task
-
-
-@pytest.mark.asyncio
-async def test_cancel_order_timeout_error(logged_in_client):
-    client, server = logged_in_client
-    order_id = "12345"
-    task = asyncio.create_task(client.cancel_order(order_id))
-
-    request = await server.receive_request(timeout=pytest.TIMEOUT)
-    assert request.method == "POST"
-    assert request.headers["Authorization"] == f"Bearer {pytest.ACCESS_TOKEN}"
-    assert request.path == (ORDERS / order_id / "cancel/").path
-
-    with pytest.raises(ClientRequestError) as exc_info:
-        await asyncio.sleep(pytest.TIMEOUT + 1)
-        await task
-    assert isinstance(exc_info.value.__cause__, asyncio.TimeoutError)
-
-
-@pytest.mark.asyncio
-async def test_order_api_error(logged_in_client):
-    client, server = logged_in_client
-    task = asyncio.create_task(client.place_order())
-
-    request = await server.receive_request(timeout=pytest.TIMEOUT)
-    assert request.method == "POST"
-    assert request.headers["Authorization"] == f"Bearer {pytest.ACCESS_TOKEN}"
-    assert request.path == ORDERS.path
-    assert (await request.json())["account"] == pytest.ACCOUNT_URL
-    server.send_response(request, status=400, content_type="application/json")
-
-    with pytest.raises(ClientAPIError):
-        await task
-
-
-@pytest.mark.asyncio
-async def test_order_timeout_error(logged_in_client):
-    client, server = logged_in_client
-    task = asyncio.create_task(client.place_order())
-
-    request = await server.receive_request(timeout=pytest.TIMEOUT)
-    assert request.method == "POST"
-    assert request.headers["Authorization"] == f"Bearer {pytest.ACCESS_TOKEN}"
-    assert request.path == ORDERS.path
-    assert (await request.json())["account"] == pytest.ACCOUNT_URL
-
-    with pytest.raises(ClientRequestError) as exc_info:
-        await asyncio.sleep(pytest.TIMEOUT + 1)
-        await task
-    assert isinstance(exc_info.value.__cause__, asyncio.TimeoutError)
 
 
 @pytest.mark.asyncio

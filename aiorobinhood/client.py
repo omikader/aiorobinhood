@@ -5,10 +5,11 @@ from typing import Any, Dict, Iterable, List, Optional, Type, Union
 from uuid import uuid4
 
 import aiohttp
+from yarl import URL
 
 from . import models, urls
-from .decorators import check_session, check_tokens, mutually_exclusive
-from .exceptions import ClientAPIError, ClientRequestError
+from .decorators import check_tokens, mutually_exclusive
+from .exceptions import ClientAPIError, ClientRequestError, ClientUninitializedError
 
 
 class RobinhoodClient:
@@ -58,23 +59,64 @@ class RobinhoodClient:
             self._session = aiohttp.ClientSession()
         return self
 
-    @check_session
     async def __aexit__(
         self,
         exc_type: Optional[Type[BaseException]],
         exc_val: Optional[BaseException],
         exc_tb: Optional[TracebackType],
     ) -> None:
-        assert self._session is not None
+        if self._session is None:
+            raise ClientUninitializedError()
 
         await self._session.close()
         self._session = None
+
+    async def request(
+        self,
+        method: str,
+        url: URL,
+        json: Optional[Dict[str, Any]] = None,
+        headers: Optional[Dict[str, Any]] = None,
+        success_code: int = 200,
+    ) -> Dict[str, Any]:
+        """Make a custom request to the Robinhood API servers.
+
+        Args:
+            method: The HTTP request method.
+            url: The Robinhood API url.
+            json: JSON request parameters.
+            headers: HTTP headers to send with the request.
+            success_code: The HTTP status code indicating success.
+
+        Returns:
+            The JSON response from the Robinhood API servers.
+
+        Raises:
+            AssertionError: The origin of the url is not the Robinhood API servers.
+            ClientAPIError: Robinhood servers responded with an error.
+            ClientRequestError: The HTTP request timed out or failed.
+            ClientUninitializedError: The :class:`~.RobinhoodClient` is not initialized.
+        """
+        assert url.origin() == urls.BASE
+        if self._session is None:
+            raise ClientUninitializedError()
+
+        try:
+            async with self._session.request(
+                method, url, headers=headers, json=json, timeout=self._timeout
+            ) as resp:
+                response = await resp.json()
+                if resp.status != success_code:
+                    raise ClientAPIError(resp.method, resp.url, resp.status, response)
+
+                return response
+        except (aiohttp.ClientError, asyncio.TimeoutError) as e:
+            raise ClientRequestError(method, url) from e
 
     ###################################################################################
     #                                      OAUTH                                      #
     ###################################################################################
 
-    @check_session
     async def login(
         self,
         username: str,
@@ -96,67 +138,57 @@ class RobinhoodClient:
             ClientRequestError: The HTTP request timed out or failed.
             ClientUninitializedError: The :class:`~.RobinhoodClient` is not initialized.
         """
-        assert self._session is not None
-
-        url = urls.LOGIN
+        headers = {"x-robinhood-challenge-response-id": kwargs.get("challenge_id", "")}
+        json = {
+            "challenge_type": challenge_type.value,
+            "client_id": self._CLIENT_ID,
+            "device_token": self._device_token,
+            "expires_in": expires_in,
+            "grant_type": "password",
+            "mfa_code": kwargs.get("mfa_code", ""),
+            "password": password,
+            "scope": "internal",
+            "username": username,
+        }
 
         try:
-            async with self._session.post(
-                url,
-                timeout=self._timeout,
-                headers={
-                    "x-robinhood-challenge-response-id": kwargs.get("challenge_id", "")
-                },
-                json={
-                    "challenge_type": challenge_type.value,
-                    "client_id": self._CLIENT_ID,
-                    "device_token": self._device_token,
-                    "expires_in": expires_in,
-                    "grant_type": "password",
-                    "mfa_code": kwargs.get("mfa_code", ""),
-                    "password": password,
-                    "scope": "internal",
-                    "username": username,
-                },
-            ) as resp:
-                response = await resp.json()
-                while (
-                    "challenge" in response
-                    and response["challenge"]["remaining_attempts"] > 0
-                ):
-                    url = urls.CHALLENGE / response["challenge"]["id"] / "respond/"
-                    challenge_id = input(f"Enter the {challenge_type.value} code: ")
-                    async with self._session.post(
-                        url, timeout=self._timeout, json={"response": challenge_id},
-                    ) as resp:
-                        response = await resp.json()
+            response = await self.request(
+                "POST", urls.LOGIN, headers=headers, json=json
+            )
+            if response.get("mfa_required"):
+                # Try again with mfa_code if 2fac is enabled
+                mfa_code = input(f"Enter the {response['mfa_type']} code: ")
+                return await self.login(
+                    username, password, expires_in, mfa_code=mfa_code
+                )
+        except ClientAPIError as e:
+            response = e.response
+            if "challenge" not in response:
+                raise e
 
-                if resp.status != 200:
-                    raise ClientAPIError(resp.method, resp.url, resp.status, response)
-                elif "id" in response:
-                    # Try again with challenge_id if challenge is passed
-                    return await self.login(
-                        username, password, expires_in, challenge_id=response["id"],
-                    )
-                elif response.get("mfa_required"):
-                    # Try again with mfa_code if 2fac is enabled
-                    mfa_code = input(f"Enter the {response['mfa_type']} code: ")
-                    return await self.login(
-                        username, password, expires_in, mfa_code=mfa_code,
-                    )
-                else:
-                    self._access_token = f"Bearer {response['access_token']}"
-                    self._refresh_token = response["refresh_token"]
-        except (aiohttp.ClientError, asyncio.TimeoutError) as e:
-            raise ClientRequestError("POST", url) from e
+            while True:
+                url = urls.CHALLENGE / response["challenge"]["id"] / "respond/"
+                json = {"response": input(f"Enter the {challenge_type.value} code: ")}
+                try:
+                    response = await self.request("POST", url, json=json)
+                    if "id" in response:
+                        # Try again with challenge_id if challenge is passed
+                        return await self.login(
+                            username, password, expires_in, challenge_id=response["id"]
+                        )
+                except ClientAPIError as e:
+                    if e.response["challenge"]["remaining_attempts"] == 0:
+                        raise e from None
 
-        # Fetch the account info during login for other methods
+        self._access_token = f"Bearer {response['access_token']}"
+        self._refresh_token = response["refresh_token"]
+
+        # Fetch the account info for other methods
         account = await self.get_account()
         self._account_url = account["url"]
         self._account_num = account["account_number"]
 
     @check_tokens
-    @check_session
     async def logout(self) -> None:
         """Invalidate the current session tokens.
 
@@ -166,25 +198,12 @@ class RobinhoodClient:
             ClientUnauthenticatedError: The :class:`~.RobinhoodClient` is not logged in.
             ClientUninitializedError: The :class:`~.RobinhoodClient` is not initialized.
         """
-        assert self._session is not None
-
-        try:
-            async with self._session.post(
-                urls.LOGOUT,
-                timeout=self._timeout,
-                json={"client_id": self._CLIENT_ID, "token": self._refresh_token},
-            ) as resp:
-                response = await resp.json()
-                if resp.status != 200:
-                    raise ClientAPIError(resp.method, resp.url, resp.status, response)
-
-                self._access_token = None
-                self._refresh_token = None
-        except (aiohttp.ClientError, asyncio.TimeoutError) as e:
-            raise ClientRequestError("POST", urls.LOGOUT) from e
+        json = {"client_id": self._CLIENT_ID, "token": self._refresh_token}
+        await self.request("POST", urls.LOGOUT, json=json)
+        self._access_token = None
+        self._refresh_token = None
 
     @check_tokens
-    @check_session
     async def refresh(self, expires_in: int = 86400) -> None:
         """Fetch a fresh set session tokens.
 
@@ -197,28 +216,16 @@ class RobinhoodClient:
             ClientUnauthenticatedError: The :class:`~.RobinhoodClient` is not logged in.
             ClientUninitializedError: The :class:`~.RobinhoodClient` is not initialized.
         """
-        assert self._session is not None
-
-        try:
-            async with self._session.post(
-                urls.LOGIN,
-                timeout=self._timeout,
-                json={
-                    "client_id": self._CLIENT_ID,
-                    "expires_in": expires_in,
-                    "grant_type": "refresh_token",
-                    "refresh_token": self._refresh_token,
-                    "scope": "internal",
-                },
-            ) as resp:
-                response = await resp.json()
-                if resp.status != 200:
-                    raise ClientAPIError(resp.method, resp.url, resp.status, response)
-
-                self._access_token = f"Bearer {response['access_token']}"
-                self._refresh_token = response["refresh_token"]
-        except (aiohttp.ClientError, asyncio.TimeoutError) as e:
-            raise ClientRequestError("POST", urls.LOGIN) from e
+        json = {
+            "client_id": self._CLIENT_ID,
+            "expires_in": expires_in,
+            "grant_type": "refresh_token",
+            "refresh_token": self._refresh_token,
+            "scope": "internal",
+        }
+        response = await self.request("POST", urls.LOGIN, json=json)
+        self._access_token = f"Bearer {response['access_token']}"
+        self._refresh_token = response["refresh_token"]
 
     @check_tokens
     async def dump(self) -> None:
@@ -259,7 +266,6 @@ class RobinhoodClient:
     ###################################################################################
 
     @check_tokens
-    @check_session
     async def get_account(self) -> Dict[str, Any]:
         """Fetch information associated with the Robinhood account.
 
@@ -272,24 +278,11 @@ class RobinhoodClient:
             ClientUnauthenticatedError: The :class:`~.RobinhoodClient` is not logged in.
             ClientUninitializedError: The :class:`~.RobinhoodClient` is not initialized.
         """
-        assert self._session is not None
-
-        try:
-            async with self._session.get(
-                urls.ACCOUNTS,
-                timeout=self._timeout,
-                headers={"Authorization": self._access_token},
-            ) as resp:
-                response = await resp.json()
-                if resp.status != 200:
-                    raise ClientAPIError(resp.method, resp.url, resp.status, response)
-
-                return response["results"][0]
-        except (aiohttp.ClientError, asyncio.TimeoutError) as e:
-            raise ClientRequestError("GET", urls.ACCOUNTS) from e
+        headers = {"Authorization": self._access_token}
+        response = await self.request("GET", urls.ACCOUNTS, headers=headers)
+        return response["results"][0]
 
     @check_tokens
-    @check_session
     async def get_portfolio(self) -> Dict[str, Any]:
         """Fetch the portfolio information associated with the Robinhood account.
 
@@ -303,24 +296,11 @@ class RobinhoodClient:
             ClientUnauthenticatedError: The :class:`~.RobinhoodClient` is not logged in.
             ClientUninitializedError: The :class:`~.RobinhoodClient` is not initialized.
         """
-        assert self._session is not None
-
-        try:
-            async with self._session.get(
-                urls.PORTFOLIOS,
-                timeout=self._timeout,
-                headers={"Authorization": self._access_token},
-            ) as resp:
-                response = await resp.json()
-                if resp.status != 200:
-                    raise ClientAPIError(resp.method, resp.url, resp.status, response)
-
-                return response["results"][0]
-        except (aiohttp.ClientError, asyncio.TimeoutError) as e:
-            raise ClientRequestError("GET", urls.PORTFOLIOS) from e
+        headers = {"Authorization": self._access_token}
+        response = await self.request("GET", urls.PORTFOLIOS, headers=headers)
+        return response["results"][0]
 
     @check_tokens
-    @check_session
     async def get_historical_portfolio(
         self,
         interval: models.HistoricalInterval,
@@ -348,8 +328,6 @@ class RobinhoodClient:
             Certain combinations of ``interval`` and ``span`` will be rejected by
             Robinhood.
         """
-        assert self._session is not None
-
         url = (urls.PORTFOLIOS / "historicals" / f"{self._account_num}/").with_query(
             {
                 "bounds": "extended" if extended_hours else "regular",
@@ -357,27 +335,14 @@ class RobinhoodClient:
                 "span": span.value,
             }
         )
-
-        try:
-            async with self._session.get(
-                url,
-                timeout=self._timeout,
-                headers={"Authorization": self._access_token},
-            ) as resp:
-                response = await resp.json()
-                if resp.status != 200:
-                    raise ClientAPIError(resp.method, resp.url, resp.status, response)
-
-                return response
-        except (aiohttp.ClientError, asyncio.TimeoutError) as e:
-            raise ClientRequestError("GET", url) from e
+        headers = {"Authorization": self._access_token}
+        return await self.request("GET", url, headers=headers)
 
     ###################################################################################
     #                                     ACCOUNT                                     #
     ###################################################################################
 
     @check_tokens
-    @check_session
     async def get_positions(
         self, nonzero: bool = True, pages: Optional[int] = None
     ) -> List[Dict[str, Any]]:
@@ -397,34 +362,18 @@ class RobinhoodClient:
             ClientUnauthenticatedError: The :class:`~.RobinhoodClient` is not logged in.
             ClientUninitializedError: The :class:`~.RobinhoodClient` is not initialized.
         """
-        assert self._session is not None
-
         results = []
         url = urls.POSITIONS.with_query({"nonzero": str(nonzero).lower()})
-
+        headers = {"Authorization": self._access_token}
         while url is not None and (pages is None or pages > 0):
-            try:
-                async with self._session.get(
-                    url,
-                    timeout=self._timeout,
-                    headers={"Authorization": self._access_token},
-                ) as resp:
-                    response = await resp.json()
-                    if resp.status != 200:
-                        raise ClientAPIError(
-                            resp.method, resp.url, resp.status, response
-                        )
-
-                    results += response["results"]
-                    url = response["next"]
-                    pages = pages and pages - 1
-            except (aiohttp.ClientError, asyncio.TimeoutError) as e:
-                raise ClientRequestError("GET", url) from e
+            response = await self.request("GET", URL(url), headers=headers)
+            results += response["results"]
+            url = response["next"]
+            pages = pages and pages - 1
 
         return results
 
     @check_tokens
-    @check_session
     async def get_watchlist(
         self, watchlist: str = "Default", pages: Optional[int] = None
     ) -> List[str]:
@@ -443,34 +392,18 @@ class RobinhoodClient:
             ClientUnauthenticatedError: The :class:`~.RobinhoodClient` is not logged in.
             ClientUninitializedError: The :class:`~.RobinhoodClient` is not initialized.
         """
-        assert self._session is not None
-
         results = []
         url = urls.WATCHLISTS / f"{watchlist}/"
-
+        headers = {"Authorization": self._access_token}
         while url is not None and (pages is None or pages > 0):
-            try:
-                async with self._session.get(
-                    url,
-                    timeout=self._timeout,
-                    headers={"Authorization": self._access_token},
-                ) as resp:
-                    response = await resp.json()
-                    if resp.status != 200:
-                        raise ClientAPIError(
-                            resp.method, resp.url, resp.status, response
-                        )
-
-                    results += response["results"]
-                    url = response["next"]
-                    pages = pages and pages - 1
-            except (aiohttp.ClientError, asyncio.TimeoutError) as e:
-                raise ClientRequestError("GET", url) from e
+            response = await self.request("GET", URL(url), headers=headers)
+            results += response["results"]
+            url = response["next"]
+            pages = pages and pages - 1
 
         return [result["instrument"] for result in results]
 
     @check_tokens
-    @check_session
     async def add_to_watchlist(
         self, instrument: str, watchlist: str = "Default"
     ) -> None:
@@ -486,25 +419,12 @@ class RobinhoodClient:
             ClientUnauthenticatedError: The :class:`~.RobinhoodClient` is not logged in.
             ClientUninitializedError: The :class:`~.RobinhoodClient` is not initialized.
         """
-        assert self._session is not None
-
         url = urls.WATCHLISTS / f"{watchlist}/"
-
-        try:
-            async with self._session.post(
-                url,
-                timeout=self._timeout,
-                headers={"Authorization": self._access_token},
-                json={"instrument": instrument},
-            ) as resp:
-                response = await resp.json()
-                if resp.status != 201:
-                    raise ClientAPIError(resp.method, resp.url, resp.status, response)
-        except (aiohttp.ClientError, asyncio.TimeoutError) as e:
-            raise ClientRequestError("POST", url) from e
+        headers = {"Authorization": self._access_token}
+        json = {"instrument": instrument}
+        await self.request("POST", url, headers=headers, json=json, success_code=201)
 
     @check_tokens
-    @check_session
     async def remove_from_watchlist(self, id_: str, watchlist: str = "Default") -> None:
         """Remove a security from the given watchlist.
 
@@ -518,21 +438,9 @@ class RobinhoodClient:
             ClientUnauthenticatedError: The :class:`~.RobinhoodClient` is not logged in.
             ClientUninitializedError: The :class:`~.RobinhoodClient` is not initialized.
         """
-        assert self._session is not None
-
         url = urls.WATCHLISTS / watchlist / f"{id_}/"
-
-        try:
-            async with self._session.delete(
-                url,
-                timeout=self._timeout,
-                headers={"Authorization": self._access_token},
-            ) as resp:
-                response = await resp.json()
-                if resp.status != 204:
-                    raise ClientAPIError(resp.method, resp.url, resp.status, response)
-        except (aiohttp.ClientError, asyncio.TimeoutError) as e:
-            raise ClientRequestError("DELETE", url) from e
+        headers = {"Authorization": self._access_token}
+        await self.request("DELETE", url, headers=headers, success_code=204)
 
     ###################################################################################
     #                                     STOCKS                                      #
@@ -540,7 +448,6 @@ class RobinhoodClient:
 
     @mutually_exclusive("symbols", "instruments")
     @check_tokens
-    @check_session
     async def get_fundamentals(
         self,
         symbols: Optional[Iterable[str]] = None,
@@ -563,30 +470,17 @@ class RobinhoodClient:
             ClientUninitializedError: The :class:`~.RobinhoodClient` is not initialized.
             ValueError: Both/neither of ``symbols`` and ``instruments`` are supplied.
         """
-        assert self._session is not None
-
         if symbols is not None:
             url = urls.FUNDAMENTALS.with_query({"symbols": ",".join(symbols)})
         elif instruments is not None:
             url = urls.FUNDAMENTALS.with_query({"instruments": ",".join(instruments)})
 
-        try:
-            async with self._session.get(
-                url,
-                timeout=self._timeout,
-                headers={"Authorization": self._access_token},
-            ) as resp:
-                response = await resp.json()
-                if resp.status != 200:
-                    raise ClientAPIError(resp.method, resp.url, resp.status, response)
-
-                return response["results"]
-        except (aiohttp.ClientError, asyncio.TimeoutError) as e:
-            raise ClientRequestError("GET", url) from e
+        headers = {"Authorization": self._access_token}
+        response = await self.request("GET", url, headers=headers)
+        return response["results"]
 
     @mutually_exclusive("symbol", "ids")
     @check_tokens
-    @check_session
     async def get_instruments(
         self,
         symbol: Optional[str] = None,
@@ -611,38 +505,23 @@ class RobinhoodClient:
             ClientUninitializedError: The :class:`~.RobinhoodClient` is not initialized.
             ValueError: Both/neither of ``symbol`` and ``ids`` are supplied.
         """
-        assert self._session is not None
-
         results = []
         if symbol is not None:
             url = urls.INSTRUMENTS.with_query({"symbol": symbol})
         elif ids is not None:
             url = urls.INSTRUMENTS.with_query({"ids": ",".join(ids)})
 
+        headers = {"Authorization": self._access_token}
         while url is not None and (pages is None or pages > 0):
-            try:
-                async with self._session.get(
-                    url,
-                    timeout=self._timeout,
-                    headers={"Authorization": self._access_token},
-                ) as resp:
-                    response = await resp.json()
-                    if resp.status != 200:
-                        raise ClientAPIError(
-                            resp.method, resp.url, resp.status, response
-                        )
-
-                    results += response["results"]
-                    url = response["next"]
-                    pages = pages and pages - 1
-            except (aiohttp.ClientError, asyncio.TimeoutError) as e:
-                raise ClientRequestError("GET", url) from e
+            response = await self.request("GET", URL(url), headers=headers)
+            results += response["results"]
+            url = response["next"]
+            pages = pages and pages - 1
 
         return results
 
     @mutually_exclusive("symbols", "instruments")
     @check_tokens
-    @check_session
     async def get_quotes(
         self,
         symbols: Optional[Iterable[str]] = None,
@@ -665,30 +544,17 @@ class RobinhoodClient:
             ClientUninitializedError: The :class:`~.RobinhoodClient` is not initialized.
             ValueError: Both/neither of ``symbols`` and ``instruments`` are supplied.
         """
-        assert self._session is not None
-
         if symbols is not None:
             url = urls.QUOTES.with_query({"symbols": ",".join(symbols)})
         elif instruments is not None:
             url = urls.QUOTES.with_query({"instruments": ",".join(instruments)})
 
-        try:
-            async with self._session.get(
-                url,
-                timeout=self._timeout,
-                headers={"Authorization": self._access_token},
-            ) as resp:
-                response = await resp.json()
-                if resp.status != 200:
-                    raise ClientAPIError(resp.method, resp.url, resp.status, response)
-
-                return response["results"]
-        except (aiohttp.ClientError, asyncio.TimeoutError) as e:
-            raise ClientRequestError("GET", url) from e
+        headers = {"Authorization": self._access_token}
+        response = await self.request("GET", url, headers=headers)
+        return response["results"]
 
     @mutually_exclusive("symbols", "instruments")
     @check_tokens
-    @check_session
     async def get_historical_quotes(
         self,
         interval: models.HistoricalInterval,
@@ -721,8 +587,6 @@ class RobinhoodClient:
             Certain combinations of ``interval`` and ``span`` will be rejected by
             Robinhood.
         """
-        assert self._session is not None
-
         url = urls.HISTORICALS.with_query(
             {
                 "bounds": "extended" if extended_hours else "regular",
@@ -735,22 +599,11 @@ class RobinhoodClient:
         elif instruments is not None:
             url = url.update_query({"instruments": ",".join(instruments)})
 
-        try:
-            async with self._session.get(
-                url,
-                timeout=self._timeout,
-                headers={"Authorization": self._access_token},
-            ) as resp:
-                response = await resp.json()
-                if resp.status != 200:
-                    raise ClientAPIError(resp.method, resp.url, resp.status, response)
-
-                return response["results"]
-        except (aiohttp.ClientError, asyncio.TimeoutError) as e:
-            raise ClientRequestError("GET", url) from e
+        headers = {"Authorization": self._access_token}
+        response = await self.request("GET", url, headers=headers)
+        return response["results"]
 
     @check_tokens
-    @check_session
     async def get_ratings(
         self, ids: Iterable[str], pages: Optional[int] = None
     ) -> List[Dict[str, Any]]:
@@ -769,34 +622,18 @@ class RobinhoodClient:
             ClientUnauthenticatedError: The :class:`~.RobinhoodClient` is not logged in.
             ClientUninitializedError: The :class:`~.RobinhoodClient` is not initialized.
         """
-        assert self._session is not None
-
         results = []
         url = urls.RATINGS.with_query({"ids": ",".join(ids)})
-
+        headers = {"Authorization": self._access_token}
         while url is not None and (pages is None or pages > 0):
-            try:
-                async with self._session.get(
-                    url,
-                    timeout=self._timeout,
-                    headers={"Authorization": self._access_token},
-                ) as resp:
-                    response = await resp.json()
-                    if resp.status != 200:
-                        raise ClientAPIError(
-                            resp.method, resp.url, resp.status, response
-                        )
-
-                    results += response["results"]
-                    url = response.get("next")
-                    pages = pages and pages - 1
-            except (aiohttp.ClientError, asyncio.TimeoutError) as e:
-                raise ClientRequestError("GET", url) from e
+            response = await self.request("GET", URL(url), headers=headers)
+            results += response["results"]
+            url = response["next"]
+            pages = pages and pages - 1
 
         return results
 
     @check_tokens
-    @check_session
     async def get_tags(self, id_: str) -> List[str]:
         """Fetch the tags for a particular security.
 
@@ -812,26 +649,12 @@ class RobinhoodClient:
             ClientUnauthenticatedError: The :class:`~.RobinhoodClient` is not logged in.
             ClientUninitializedError: The :class:`~.RobinhoodClient` is not initialized.
         """
-        assert self._session is not None
-
         url = urls.TAGS / "instrument" / f"{id_}/"
-
-        try:
-            async with self._session.get(
-                url,
-                timeout=self._timeout,
-                headers={"Authorization": self._access_token},
-            ) as resp:
-                response = await resp.json()
-                if resp.status != 200:
-                    raise ClientAPIError(resp.method, resp.url, resp.status, response)
-
-                return [tag["slug"] for tag in response["tags"]]
-        except (aiohttp.ClientError, asyncio.TimeoutError) as e:
-            raise ClientRequestError("GET", url) from e
+        headers = {"Authorization": self._access_token}
+        response = await self.request("GET", url, headers=headers)
+        return [tag["slug"] for tag in response["tags"]]
 
     @check_tokens
-    @check_session
     async def get_tag_members(self, tag: str) -> List[str]:
         """Fetch the instruments belonging to a particular tag.
 
@@ -847,30 +670,16 @@ class RobinhoodClient:
             ClientUnauthenticatedError: The :class:`~.RobinhoodClient` is not logged in.
             ClientUninitializedError: The :class:`~.RobinhoodClient` is not initialized.
         """
-        assert self._session is not None
-
         url = urls.TAGS / "tag" / f"{tag}/"
-
-        try:
-            async with self._session.get(
-                url,
-                timeout=self._timeout,
-                headers={"Authorization": self._access_token},
-            ) as resp:
-                response = await resp.json()
-                if resp.status != 200:
-                    raise ClientAPIError(resp.method, resp.url, resp.status, response)
-
-                return response["instruments"]
-        except (aiohttp.ClientError, asyncio.TimeoutError) as e:
-            raise ClientRequestError("GET", url) from e
+        headers = {"Authorization": self._access_token}
+        response = await self.request("GET", url, headers=headers)
+        return response["instruments"]
 
     ###################################################################################
     #                                     ORDERS                                      #
     ###################################################################################
 
     @check_tokens
-    @check_session
     async def get_orders(
         self, order_id: Optional[str] = None, pages: Optional[int] = None
     ) -> List[Dict[str, Any]]:
@@ -891,34 +700,20 @@ class RobinhoodClient:
             ClientUnauthenticatedError: The :class:`~.RobinhoodClient` is not logged in.
             ClientUninitializedError: The :class:`~.RobinhoodClient` is not initialized.
         """
-        assert self._session is not None
-
         results = []
-        url = urls.ORDERS if order_id is None else urls.ORDERS / f"{order_id}/"
-
+        # fmt: off
+        url: Optional[URL] = urls.ORDERS if order_id is None else urls.ORDERS / f"{order_id}/"  # noqa: E501
+        # fmt: on
+        headers = {"Authorization": self._access_token}
         while url is not None and (pages is None or pages > 0):
-            try:
-                async with self._session.get(
-                    url,
-                    timeout=self._timeout,
-                    headers={"Authorization": self._access_token},
-                ) as resp:
-                    response = await resp.json()
-                    if resp.status != 200:
-                        raise ClientAPIError(
-                            resp.method, resp.url, resp.status, response
-                        )
-
-                    results += response.get("results", [response])
-                    url = response.get("next")
-                    pages = pages and pages - 1
-            except (aiohttp.ClientError, asyncio.TimeoutError) as e:
-                raise ClientRequestError("GET", url) from e
+            response = await self.request("GET", URL(url), headers=headers)
+            results += response.get("results", [response])
+            url = response.get("next")
+            pages = pages and pages - 1
 
         return results
 
     @check_tokens
-    @check_session
     async def cancel_order(self, order_id: str) -> None:
         """Cancel an order.
 
@@ -931,41 +726,29 @@ class RobinhoodClient:
             ClientUnauthenticatedError: The :class:`~.RobinhoodClient` is not logged in.
             ClientUninitializedError: The :class:`~.RobinhoodClient` is not initialized.
         """
-        assert self._session is not None
-
         url = urls.ORDERS / order_id / "cancel/"
-
-        try:
-            async with self._session.post(
-                url,
-                timeout=self._timeout,
-                headers={"Authorization": self._access_token},
-            ) as resp:
-                response = await resp.json()
-                if resp.status != 200:
-                    raise ClientAPIError(resp.method, resp.url, resp.status, response)
-        except (aiohttp.ClientError, asyncio.TimeoutError) as e:
-            raise ClientRequestError("POST", url) from e
+        headers = {"Authorization": self._access_token}
+        await self.request("POST", url, headers=headers)
 
     @check_tokens
-    @check_session
     async def place_order(self, **kwargs) -> str:
-        assert self._session is not None
+        """Place a custom order.
 
-        try:
-            async with self._session.post(
-                urls.ORDERS,
-                timeout=self._timeout,
-                headers={"Authorization": self._access_token},
-                json={"account": self._account_url, "ref_id": str(uuid4()), **kwargs},
-            ) as resp:
-                response = await resp.json()
-                if resp.status != 201:
-                    raise ClientAPIError(resp.method, resp.url, resp.status, response)
+        Returns:
+            The order ID.
 
-                return response["id"]
-        except (aiohttp.ClientError, asyncio.TimeoutError) as e:
-            raise ClientRequestError("POST", urls.ORDERS) from e
+        Raises:
+            ClientAPIError: Robinhood server responded with an error.
+            ClientRequestError: The HTTP request timed out or failed.
+            ClientUnauthenticatedError: The :class:`~.RobinhoodClient` is not logged in.
+            ClientUninitializedError: The :class:`~.RobinhoodClient` is not initialized.
+        """
+        headers = {"Authorization": self._access_token}
+        json = {"account": self._account_url, "ref_id": str(uuid4()), **kwargs}
+        response = await self.request(
+            "POST", urls.ORDERS, headers=headers, json=json, success_code=201
+        )
+        return response["id"]
 
     async def place_limit_buy_order(
         self,

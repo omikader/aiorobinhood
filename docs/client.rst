@@ -11,6 +11,12 @@ All communication with the Robinhood servers is done through the
 
 .. autoclass:: RobinhoodClient
 
+All :class:`~.RobinhoodClient` request methods call the :meth:`~.request` helper
+method below. This method can also be used to craft custom API requests that are not
+encapsulated by :class:`~.RobinhoodClient` API methods.
+
+.. automethod:: RobinhoodClient.request
+
 Authentication
 ==============
 
@@ -58,6 +64,11 @@ Placing Orders
 .. warning::
 	Robinhood rate limits the ``/orders`` endpoint used by the following methods.
 
+All :class:`~.RobinhoodClient` order methods call the :meth:`~.place_order` helper
+method below. This method can also be used to craft custom order requests that are not
+encapsulated by :class:`~.RobinhoodClient` order API methods.
+
+.. automethod:: RobinhoodClient.place_order
 .. automethod:: RobinhoodClient.place_limit_buy_order
 .. automethod:: RobinhoodClient.place_limit_sell_order
 .. automethod:: RobinhoodClient.place_market_buy_order
