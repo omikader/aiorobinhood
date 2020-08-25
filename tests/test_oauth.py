@@ -5,18 +5,10 @@ import sys
 from contextlib import contextmanager
 from io import StringIO
 
-import aiohttp
 import pytest
 
-from aiorobinhood import (
-    ClientAPIError,
-    ClientRequestError,
-    ClientUnauthenticatedError,
-    ClientUninitializedError,
-    RobinhoodClient,
-)
+from aiorobinhood import ClientAPIError, ClientUnauthenticatedError
 from aiorobinhood.urls import ACCOUNTS, CHALLENGE, LOGIN, LOGOUT
-from tests import CaseControlledTestServer, TemporaryCertificate
 
 
 @contextmanager
@@ -208,39 +200,6 @@ async def test_login_sfa_zero_challenge_attempts(logged_out_client):
 
 
 @pytest.mark.asyncio
-async def test_login_uninitialized_client():
-    client = RobinhoodClient(timeout=pytest.TIMEOUT)
-    with pytest.raises(ClientUninitializedError):
-        await client.login(username="robin", password="hood")
-
-
-@pytest.mark.asyncio
-async def test_login_connection_failure(http_redirect, unused_tcp_port):
-    http_redirect.add_server("api.robinhood.com", 443, unused_tcp_port)
-    client = RobinhoodClient(timeout=pytest.TIMEOUT, session=http_redirect.session)
-
-    with pytest.raises(ClientRequestError) as exc_info:
-        await client.login(username="robin", password="hood")
-    assert isinstance(exc_info.value.__cause__, aiohttp.ClientConnectorError)
-
-
-@pytest.mark.asyncio
-async def test_login_invalid_certificate(http_redirect):
-    with TemporaryCertificate() as bad_cert:
-        async with CaseControlledTestServer(ssl=bad_cert.server_context()) as server:
-            http_redirect.add_server("api.robinhood.com", 443, server.port)
-            client = RobinhoodClient(
-                timeout=pytest.TIMEOUT, session=http_redirect.session
-            )
-
-            with pytest.raises(ClientRequestError) as exc_info:
-                await client.login(username="robin", password="hood")
-            assert isinstance(
-                exc_info.value.__cause__, aiohttp.ClientConnectorCertificateError
-            )
-
-
-@pytest.mark.asyncio
 async def test_logout(logged_in_client):
     client, server = logged_in_client
     task = asyncio.create_task(client.logout())
@@ -302,13 +261,6 @@ async def test_dump(logged_in_client):
 
 
 @pytest.mark.asyncio
-async def test_dump_unauthenticated_client(logged_out_client):
-    client, _ = logged_out_client
-    with pytest.raises(ClientUnauthenticatedError):
-        await client.dump()
-
-
-@pytest.mark.asyncio
 async def test_load(logged_in_client):
     client, server = logged_in_client
     await client.dump()
@@ -334,10 +286,3 @@ async def test_load(logged_in_client):
     assert client._access_token == f"Bearer {pytest.ACCESS_TOKEN}"
     assert client._refresh_token == pytest.REFRESH_TOKEN
     assert result is None
-
-
-@pytest.mark.asyncio
-async def test_load_unathenticated_client(logged_in_client):
-    client, _ = logged_in_client
-    with pytest.raises(ClientUnauthenticatedError):
-        await client.load()

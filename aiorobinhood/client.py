@@ -92,12 +92,13 @@ class RobinhoodClient:
             The JSON response from the Robinhood API servers.
 
         Raises:
-            AssertionError: The origin of the url is not the Robinhood API servers.
             ClientAPIError: Robinhood servers responded with an error.
             ClientRequestError: The HTTP request timed out or failed.
             ClientUninitializedError: The :class:`~.RobinhoodClient` is not initialized.
+            ValueError: The url does not originate from the Robinhood API servers.
         """
-        assert url.origin() == urls.BASE
+        if url.origin() != urls.BASE:
+            raise ValueError(f"{url} does not originate from {urls.BASE}")
         if self._session is None:
             raise ClientUninitializedError()
 
@@ -750,6 +751,7 @@ class RobinhoodClient:
         )
         return response["id"]
 
+    @check_tokens
     async def place_limit_buy_order(
         self,
         symbol: str,
@@ -790,6 +792,7 @@ class RobinhoodClient:
             type="limit",
         )
 
+    @check_tokens
     async def place_limit_sell_order(
         self,
         symbol: str,
@@ -831,6 +834,7 @@ class RobinhoodClient:
         )
 
     @mutually_exclusive("amount", "quantity")
+    @check_tokens
     async def place_market_buy_order(
         self,
         symbol: str,
@@ -884,6 +888,7 @@ class RobinhoodClient:
         return await self.place_order(**payload)
 
     @mutually_exclusive("amount", "quantity")
+    @check_tokens
     async def place_market_sell_order(
         self,
         symbol: str,
@@ -936,6 +941,7 @@ class RobinhoodClient:
 
         return await self.place_order(**payload)
 
+    @check_tokens
     async def place_stop_buy_order(
         self,
         symbol: str,
@@ -977,6 +983,7 @@ class RobinhoodClient:
             type="market",
         )
 
+    @check_tokens
     async def place_stop_sell_order(
         self,
         symbol: str,
@@ -1017,6 +1024,7 @@ class RobinhoodClient:
             type="market",
         )
 
+    @check_tokens
     async def place_stop_limit_buy_order(
         self,
         symbol: str,
@@ -1060,6 +1068,7 @@ class RobinhoodClient:
             type="limit",
         )
 
+    @check_tokens
     async def place_stop_limit_sell_order(
         self,
         symbol: str,
