@@ -13,7 +13,7 @@ jobs:
     strategy:
       matrix:
         os: [macOS-latest, ubuntu-latest, windows-latest]
-        python-version: [3.7, 3.8]
+        python-version: [3.6, 3.7, 3.8]
     env:
       OS: ${{ matrix.os }}
       PYTHON: ${{ matrix.python-version }}
