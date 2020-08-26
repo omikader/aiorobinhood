@@ -154,7 +154,10 @@ async def test_login_api_error(logged_out_client):
         assert request.method == "POST"
         assert request.path == LOGIN.path
         server.send_response(
-            request, status=400, content_type="application/json", text=json.dumps({}),
+            request,
+            status=400,
+            content_type="application/json",
+            text=json.dumps({}),
         )
 
         with pytest.raises(ClientAPIError):
