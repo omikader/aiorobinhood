@@ -1,0 +1,4 @@
+include LICENSE
+graft docs
+graft tests
+prune docs/_build
