@@ -91,7 +91,7 @@ class TemporaryCertificate:
                 public_exponent=65537, key_size=1024, backend=default_backend()
             )
 
-            key_file = stack.enter_context(tempfile.NamedTemporaryFile())
+            key_file = stack.enter_context(tempfile.NamedTemporaryFile(delete=False))
             key_file.write(
                 key.private_bytes(
                     encoding=serialization.Encoding.PEM,
@@ -118,7 +118,7 @@ class TemporaryCertificate:
                 .sign(key, hashes.SHA256(), default_backend())
             )
 
-            cert_file = stack.enter_context(tempfile.NamedTemporaryFile())
+            cert_file = stack.enter_context(tempfile.NamedTemporaryFile(delete=False))
             cert_file.write(cert.public_bytes(serialization.Encoding.PEM))
             cert_file.flush()
 
