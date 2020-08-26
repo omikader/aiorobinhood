@@ -17,7 +17,9 @@ async def test_get_account(logged_in_client):
     assert request.headers["Authorization"] == f"Bearer {pytest.ACCESS_TOKEN}"
     assert request.path == ACCOUNTS.path
     server.send_response(
-        request, content_type="application/json", text=json.dumps({"results": [{}]}),
+        request,
+        content_type="application/json",
+        text=json.dumps({"results": [{}]}),
     )
 
     result = await asyncio.wait_for(task, pytest.TIMEOUT)
@@ -34,7 +36,9 @@ async def test_get_portfolio(logged_in_client):
     assert request.headers["Authorization"] == f"Bearer {pytest.ACCESS_TOKEN}"
     assert request.path == PORTFOLIOS.path
     server.send_response(
-        request, content_type="application/json", text=json.dumps({"results": [{}]}),
+        request,
+        content_type="application/json",
+        text=json.dumps({"results": [{}]}),
     )
 
     result = await asyncio.wait_for(task, pytest.TIMEOUT)

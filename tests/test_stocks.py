@@ -25,7 +25,9 @@ async def test_get_fundamentals_by_symbols(logged_in_client):
     assert request.path == FUNDAMENTALS.path
     assert request.query["symbols"] == "ABCD"
     server.send_response(
-        request, content_type="application/json", text=json.dumps({"results": [{}]}),
+        request,
+        content_type="application/json",
+        text=json.dumps({"results": [{}]}),
     )
 
     result = await asyncio.wait_for(task, pytest.TIMEOUT)
@@ -43,7 +45,9 @@ async def test_get_fundamentals_by_instruments(logged_in_client):
     assert request.path == FUNDAMENTALS.path
     assert request.query["instruments"] == "<>"
     server.send_response(
-        request, content_type="application/json", text=json.dumps({"results": [{}]}),
+        request,
+        content_type="application/json",
+        text=json.dumps({"results": [{}]}),
     )
 
     result = await asyncio.wait_for(task, pytest.TIMEOUT)
@@ -139,7 +143,9 @@ async def test_get_quotes_by_symbols(logged_in_client):
     assert request.path == QUOTES.path
     assert request.query["symbols"] == "ABCD"
     server.send_response(
-        request, content_type="application/json", text=json.dumps({"results": [{}]}),
+        request,
+        content_type="application/json",
+        text=json.dumps({"results": [{}]}),
     )
 
     result = await asyncio.wait_for(task, pytest.TIMEOUT)
@@ -157,7 +163,9 @@ async def test_get_quotes_by_instruments(logged_in_client):
     assert request.path == QUOTES.path
     assert request.query["instruments"] == "<>"
     server.send_response(
-        request, content_type="application/json", text=json.dumps({"results": [{}]}),
+        request,
+        content_type="application/json",
+        text=json.dumps({"results": [{}]}),
     )
 
     result = await asyncio.wait_for(task, pytest.TIMEOUT)
@@ -193,7 +201,9 @@ async def test_get_historical_quotes_by_symbols(logged_in_client):
     assert request.query["span"] == HistoricalSpan.DAY.value
     assert request.query["symbols"] == "ABCD"
     server.send_response(
-        request, content_type="application/json", text=json.dumps({"results": [{}]}),
+        request,
+        content_type="application/json",
+        text=json.dumps({"results": [{}]}),
     )
 
     result = await asyncio.wait_for(task, pytest.TIMEOUT)
@@ -220,7 +230,9 @@ async def test_get_historical_quotes_by_instruments(logged_in_client):
     assert request.query["span"] == HistoricalSpan.DAY.value
     assert request.query["instruments"] == "<>"
     server.send_response(
-        request, content_type="application/json", text=json.dumps({"results": [{}]}),
+        request,
+        content_type="application/json",
+        text=json.dumps({"results": [{}]}),
     )
 
     result = await asyncio.wait_for(task, pytest.TIMEOUT)
