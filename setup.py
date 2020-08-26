@@ -57,5 +57,5 @@ setup(
         ],
         "docs": ["aiohttp_theme", "sphinx", "sphinx-autodoc-typehints"],
     },
-    python_requires=">=3.7",
+    python_requires=">=3.6",
 )
