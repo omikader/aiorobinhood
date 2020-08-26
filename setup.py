@@ -5,8 +5,8 @@ import sys
 from setuptools import setup
 
 
-if sys.version_info < (3, 7):
-    raise RuntimeError("aiorobinhood requires Python 3.7+")
+if sys.version_info < (3, 6):
+    raise RuntimeError("aiorobinhood requires Python 3.6+")
 
 
 HERE = pathlib.Path(__file__).parent
@@ -36,6 +36,7 @@ setup(
     classifiers=[
         "Programming Language :: Python",
         "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
     ],
