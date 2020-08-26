@@ -26,7 +26,7 @@ async def test_login_sfa_flow(logged_out_client):
     challenge_id = "abcdef"
 
     with replace_input(StringIO(challenge_code)):
-        task = asyncio.create_task(client.login(username="robin", password="hood"))
+        task = asyncio.ensure_future(client.login(username="robin", password="hood"))
 
         request = await server.receive_request(timeout=pytest.TIMEOUT)
         assert request.method == "POST"
@@ -93,7 +93,7 @@ async def test_login_mfa_flow(logged_out_client):
     mfa_code = "123456"
 
     with replace_input(StringIO(mfa_code)):
-        task = asyncio.create_task(client.login(username="robin", password="hood"))
+        task = asyncio.ensure_future(client.login(username="robin", password="hood"))
 
         request = await server.receive_request(timeout=pytest.TIMEOUT)
         assert request.method == "POST"
@@ -148,7 +148,7 @@ async def test_login_api_error(logged_out_client):
     challenge_code = "123456"
 
     with replace_input(StringIO(challenge_code)):
-        task = asyncio.create_task(client.login(username="robin", password="hood"))
+        task = asyncio.ensure_future(client.login(username="robin", password="hood"))
 
         request = await server.receive_request(timeout=pytest.TIMEOUT)
         assert request.method == "POST"
@@ -171,7 +171,7 @@ async def test_login_sfa_zero_challenge_attempts(logged_out_client):
     challenge_id = "abcdef"
 
     with replace_input(StringIO(challenge_code)):
-        task = asyncio.create_task(client.login(username="robin", password="hood"))
+        task = asyncio.ensure_future(client.login(username="robin", password="hood"))
 
         request = await server.receive_request(timeout=pytest.TIMEOUT)
         assert request.method == "POST"
@@ -205,7 +205,7 @@ async def test_login_sfa_zero_challenge_attempts(logged_out_client):
 @pytest.mark.asyncio
 async def test_logout(logged_in_client):
     client, server = logged_in_client
-    task = asyncio.create_task(client.logout())
+    task = asyncio.ensure_future(client.logout())
 
     request = await server.receive_request(timeout=pytest.TIMEOUT)
     assert request.method == "POST"
@@ -229,7 +229,7 @@ async def test_logout_unauthenticated_client(logged_out_client):
 @pytest.mark.asyncio
 async def test_refresh(logged_in_client):
     client, server = logged_in_client
-    task = asyncio.create_task(client.refresh())
+    task = asyncio.ensure_future(client.refresh())
 
     assert client._access_token == f"Bearer {pytest.ACCESS_TOKEN}"
     assert client._refresh_token == pytest.REFRESH_TOKEN
@@ -267,7 +267,7 @@ async def test_dump(logged_in_client):
 async def test_load(logged_in_client):
     client, server = logged_in_client
     await client.dump()
-    task = asyncio.create_task(client.load())
+    task = asyncio.ensure_future(client.load())
 
     request = await server.receive_request(timeout=pytest.TIMEOUT)
     assert request.method == "GET"

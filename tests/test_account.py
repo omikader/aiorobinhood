@@ -9,7 +9,7 @@ from aiorobinhood.urls import POSITIONS, WATCHLISTS
 @pytest.mark.asyncio
 async def test_get_positions(logged_in_client):
     client, server = logged_in_client
-    task = asyncio.create_task(client.get_positions())
+    task = asyncio.ensure_future(client.get_positions())
 
     request = await server.receive_request(timeout=pytest.TIMEOUT)
     assert request.method == "GET"
@@ -40,7 +40,7 @@ async def test_get_positions(logged_in_client):
 @pytest.mark.asyncio
 async def test_get_watchlist(logged_in_client):
     client, server = logged_in_client
-    task = asyncio.create_task(client.get_watchlist(pages=2))
+    task = asyncio.ensure_future(client.get_watchlist(pages=2))
 
     request = await server.receive_request(timeout=pytest.TIMEOUT)
     assert request.method == "GET"
@@ -69,7 +69,7 @@ async def test_get_watchlist(logged_in_client):
 @pytest.mark.asyncio
 async def test_add_to_watchlist(logged_in_client):
     client, server = logged_in_client
-    task = asyncio.create_task(client.add_to_watchlist(instrument="<>"))
+    task = asyncio.ensure_future(client.add_to_watchlist(instrument="<>"))
 
     request = await server.receive_request(timeout=pytest.TIMEOUT)
     assert request.method == "POST"
@@ -85,7 +85,7 @@ async def test_add_to_watchlist(logged_in_client):
 @pytest.mark.asyncio
 async def test_remove_from_watchlist(logged_in_client):
     client, server = logged_in_client
-    task = asyncio.create_task(client.remove_from_watchlist(id_="12345"))
+    task = asyncio.ensure_future(client.remove_from_watchlist(id_="12345"))
 
     request = await server.receive_request(timeout=pytest.TIMEOUT)
     assert request.method == "DELETE"

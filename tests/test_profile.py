@@ -10,7 +10,7 @@ from aiorobinhood.urls import ACCOUNTS, PORTFOLIOS
 @pytest.mark.asyncio
 async def test_get_account(logged_in_client):
     client, server = logged_in_client
-    task = asyncio.create_task(client.get_account())
+    task = asyncio.ensure_future(client.get_account())
 
     request = await server.receive_request(timeout=pytest.TIMEOUT)
     assert request.method == "GET"
@@ -29,7 +29,7 @@ async def test_get_account(logged_in_client):
 @pytest.mark.asyncio
 async def test_get_portfolio(logged_in_client):
     client, server = logged_in_client
-    task = asyncio.create_task(client.get_portfolio())
+    task = asyncio.ensure_future(client.get_portfolio())
 
     request = await server.receive_request(timeout=pytest.TIMEOUT)
     assert request.method == "GET"
@@ -48,7 +48,7 @@ async def test_get_portfolio(logged_in_client):
 @pytest.mark.asyncio
 async def test_get_historical_portfolio(logged_in_client):
     client, server = logged_in_client
-    task = asyncio.create_task(
+    task = asyncio.ensure_future(
         client.get_historical_portfolio(
             interval=HistoricalInterval.FIVE_MIN,
             span=HistoricalSpan.DAY,

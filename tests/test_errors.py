@@ -16,7 +16,7 @@ from tests import CaseControlledTestServer, TemporaryCertificate
 @pytest.mark.asyncio
 async def test_request_api_error(logged_in_client):
     client, server = logged_in_client
-    task = asyncio.create_task(client.request(method="GET", url=pytest.NEXT))
+    task = asyncio.ensure_future(client.request(method="GET", url=pytest.NEXT))
 
     request = await server.receive_request(timeout=pytest.TIMEOUT)
     assert request.method == "GET"
@@ -30,7 +30,7 @@ async def test_request_api_error(logged_in_client):
 @pytest.mark.asyncio
 async def test_request_timeout_error(logged_in_client):
     client, server = logged_in_client
-    task = asyncio.create_task(client.request(method="GET", url=pytest.NEXT))
+    task = asyncio.ensure_future(client.request(method="GET", url=pytest.NEXT))
 
     request = await server.receive_request(timeout=pytest.TIMEOUT)
     assert request.method == "GET"

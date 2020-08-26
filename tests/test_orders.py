@@ -9,7 +9,7 @@ from aiorobinhood.urls import INSTRUMENTS, ORDERS, QUOTES
 @pytest.mark.asyncio
 async def test_get_orders(logged_in_client):
     client, server = logged_in_client
-    task = asyncio.create_task(client.get_orders())
+    task = asyncio.ensure_future(client.get_orders())
 
     request = await server.receive_request(timeout=pytest.TIMEOUT)
     assert request.method == "GET"
@@ -39,7 +39,7 @@ async def test_get_orders(logged_in_client):
 async def test_cancel_order(logged_in_client):
     client, server = logged_in_client
     order_id = "12345"
-    task = asyncio.create_task(client.cancel_order(order_id))
+    task = asyncio.ensure_future(client.cancel_order(order_id))
 
     request = await server.receive_request(timeout=pytest.TIMEOUT)
     assert request.method == "POST"
@@ -54,7 +54,7 @@ async def test_cancel_order(logged_in_client):
 @pytest.mark.asyncio
 async def test_place_limit_buy_order(logged_in_client):
     client, server = logged_in_client
-    task = asyncio.create_task(
+    task = asyncio.ensure_future(
         client.place_limit_buy_order(symbol="ABCD", price=12.50, quantity=1)
     )
 
@@ -96,7 +96,7 @@ async def test_place_limit_buy_order(logged_in_client):
 @pytest.mark.asyncio
 async def test_place_limit_sell_order(logged_in_client):
     client, server = logged_in_client
-    task = asyncio.create_task(
+    task = asyncio.ensure_future(
         client.place_limit_sell_order(symbol="ABCD", price=12.50, quantity=1)
     )
 
@@ -138,7 +138,7 @@ async def test_place_limit_sell_order(logged_in_client):
 @pytest.mark.asyncio
 async def test_place_market_buy_order_by_amount(logged_in_client):
     client, server = logged_in_client
-    task = asyncio.create_task(
+    task = asyncio.ensure_future(
         client.place_market_buy_order(symbol="ABCD", amount=12.255)
     )
 
@@ -184,7 +184,7 @@ async def test_place_market_buy_order_by_amount(logged_in_client):
 @pytest.mark.asyncio
 async def test_place_market_buy_order_by_quantity(logged_in_client):
     client, server = logged_in_client
-    task = asyncio.create_task(
+    task = asyncio.ensure_future(
         client.place_market_buy_order(symbol="ABCD", quantity=2.5)
     )
 
@@ -236,7 +236,7 @@ async def test_place_market_buy_order_value_error(logged_in_client):
 @pytest.mark.asyncio
 async def test_place_market_sell_order_by_amount(logged_in_client):
     client, server = logged_in_client
-    task = asyncio.create_task(
+    task = asyncio.ensure_future(
         client.place_market_sell_order(symbol="ABCD", amount=12.255)
     )
 
@@ -282,7 +282,7 @@ async def test_place_market_sell_order_by_amount(logged_in_client):
 @pytest.mark.asyncio
 async def test_place_market_sell_order_by_quantity(logged_in_client):
     client, server = logged_in_client
-    task = asyncio.create_task(
+    task = asyncio.ensure_future(
         client.place_market_sell_order(symbol="ABCD", quantity=2.5)
     )
 
@@ -334,7 +334,7 @@ async def test_place_market_sell_order_value_error(logged_in_client):
 @pytest.mark.asyncio
 async def test_place_stop_buy_order(logged_in_client):
     client, server = logged_in_client
-    task = asyncio.create_task(
+    task = asyncio.ensure_future(
         client.place_stop_buy_order(symbol="ABCD", price=10, quantity=1)
     )
 
@@ -377,7 +377,7 @@ async def test_place_stop_buy_order(logged_in_client):
 @pytest.mark.asyncio
 async def test_place_stop_sell_order(logged_in_client):
     client, server = logged_in_client
-    task = asyncio.create_task(
+    task = asyncio.ensure_future(
         client.place_stop_sell_order(symbol="ABCD", price=10, quantity=1)
     )
 
@@ -419,7 +419,7 @@ async def test_place_stop_sell_order(logged_in_client):
 @pytest.mark.asyncio
 async def test_place_stop_limit_buy_order(logged_in_client):
     client, server = logged_in_client
-    task = asyncio.create_task(
+    task = asyncio.ensure_future(
         client.place_stop_limit_buy_order(
             symbol="ABCD", price=10, stop_price=12.5, quantity=1
         )
@@ -464,7 +464,7 @@ async def test_place_stop_limit_buy_order(logged_in_client):
 @pytest.mark.asyncio
 async def test_place_stop_limit_sell_order(logged_in_client):
     client, server = logged_in_client
-    task = asyncio.create_task(
+    task = asyncio.ensure_future(
         client.place_stop_limit_sell_order(
             symbol="ABCD", price=8.1, stop_price=8, quantity=1
         )

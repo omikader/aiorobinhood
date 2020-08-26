@@ -17,7 +17,7 @@ from aiorobinhood.urls import (
 @pytest.mark.asyncio
 async def test_get_fundamentals_by_symbols(logged_in_client):
     client, server = logged_in_client
-    task = asyncio.create_task(client.get_fundamentals(symbols=["ABCD"]))
+    task = asyncio.ensure_future(client.get_fundamentals(symbols=["ABCD"]))
 
     request = await server.receive_request(timeout=pytest.TIMEOUT)
     assert request.method == "GET"
@@ -37,7 +37,7 @@ async def test_get_fundamentals_by_symbols(logged_in_client):
 @pytest.mark.asyncio
 async def test_get_fundamentals_by_instruments(logged_in_client):
     client, server = logged_in_client
-    task = asyncio.create_task(client.get_fundamentals(instruments=["<>"]))
+    task = asyncio.ensure_future(client.get_fundamentals(instruments=["<>"]))
 
     request = await server.receive_request(timeout=pytest.TIMEOUT)
     assert request.method == "GET"
@@ -66,7 +66,7 @@ async def test_get_fundamentals_value_error(logged_in_client):
 @pytest.mark.asyncio
 async def test_get_instruments_by_symbol(logged_in_client):
     client, server = logged_in_client
-    task = asyncio.create_task(client.get_instruments(symbol="ABCD"))
+    task = asyncio.ensure_future(client.get_instruments(symbol="ABCD"))
 
     request = await server.receive_request(timeout=pytest.TIMEOUT)
     assert request.method == "GET"
@@ -96,7 +96,7 @@ async def test_get_instruments_by_symbol(logged_in_client):
 @pytest.mark.asyncio
 async def test_get_instruments_by_ids(logged_in_client):
     client, server = logged_in_client
-    task = asyncio.create_task(client.get_instruments(ids=["12345"]))
+    task = asyncio.ensure_future(client.get_instruments(ids=["12345"]))
 
     request = await server.receive_request(timeout=pytest.TIMEOUT)
     assert request.method == "GET"
@@ -135,7 +135,7 @@ async def test_get_instruments_value_error(logged_in_client):
 @pytest.mark.asyncio
 async def test_get_quotes_by_symbols(logged_in_client):
     client, server = logged_in_client
-    task = asyncio.create_task(client.get_quotes(symbols=["ABCD"]))
+    task = asyncio.ensure_future(client.get_quotes(symbols=["ABCD"]))
 
     request = await server.receive_request(timeout=pytest.TIMEOUT)
     assert request.method == "GET"
@@ -155,7 +155,7 @@ async def test_get_quotes_by_symbols(logged_in_client):
 @pytest.mark.asyncio
 async def test_get_quotes_by_instruments(logged_in_client):
     client, server = logged_in_client
-    task = asyncio.create_task(client.get_quotes(instruments=["<>"]))
+    task = asyncio.ensure_future(client.get_quotes(instruments=["<>"]))
 
     request = await server.receive_request(timeout=pytest.TIMEOUT)
     assert request.method == "GET"
@@ -184,7 +184,7 @@ async def test_get_quotes_value_error(logged_in_client):
 @pytest.mark.asyncio
 async def test_get_historical_quotes_by_symbols(logged_in_client):
     client, server = logged_in_client
-    task = asyncio.create_task(
+    task = asyncio.ensure_future(
         client.get_historical_quotes(
             interval=HistoricalInterval.FIVE_MIN,
             span=HistoricalSpan.DAY,
@@ -213,7 +213,7 @@ async def test_get_historical_quotes_by_symbols(logged_in_client):
 @pytest.mark.asyncio
 async def test_get_historical_quotes_by_instruments(logged_in_client):
     client, server = logged_in_client
-    task = asyncio.create_task(
+    task = asyncio.ensure_future(
         client.get_historical_quotes(
             interval=HistoricalInterval.FIVE_MIN,
             span=HistoricalSpan.DAY,
@@ -251,7 +251,7 @@ async def test_get_historical_quotes_value_error(logged_in_client):
 @pytest.mark.asyncio
 async def test_get_ratings(logged_in_client):
     client, server = logged_in_client
-    task = asyncio.create_task(client.get_ratings(ids=["12345", "67890"]))
+    task = asyncio.ensure_future(client.get_ratings(ids=["12345", "67890"]))
 
     request = await server.receive_request(timeout=pytest.TIMEOUT)
     assert request.method == "GET"
@@ -281,7 +281,7 @@ async def test_get_ratings(logged_in_client):
 @pytest.mark.asyncio
 async def test_get_tags(logged_in_client):
     client, server = logged_in_client
-    task = asyncio.create_task(client.get_tags(id_="12345"))
+    task = asyncio.ensure_future(client.get_tags(id_="12345"))
 
     request = await server.receive_request(timeout=pytest.TIMEOUT)
     assert request.method == "GET"
@@ -300,7 +300,7 @@ async def test_get_tags(logged_in_client):
 @pytest.mark.asyncio
 async def test_get_tag_members(logged_in_client):
     client, server = logged_in_client
-    task = asyncio.create_task(client.get_tag_members(tag="foo"))
+    task = asyncio.ensure_future(client.get_tag_members(tag="foo"))
 
     request = await server.receive_request(timeout=pytest.TIMEOUT)
     assert request.method == "GET"

@@ -34,7 +34,7 @@ async def logged_in_client(http_redirect, ssl_certificate, tmp_path):
             session_file=str(tmp_path / ".aiorobinhood.pickle"),
         )
 
-        task = asyncio.create_task(client.login(username="robin", password="hood"))
+        task = asyncio.ensure_future(client.login(username="robin", password="hood"))
         request = await server.receive_request(timeout=pytest.TIMEOUT)
         assert request.method == "POST"
         assert request.path == LOGIN.path
